@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini GTA 2D Ultimate</title>
+
+<style>
+body{
+  margin:0;
+  background:#020617;
+  font-family:Tahoma, Arial;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.hud{
+  width:760px;
+  padding:10px;
+  background:#020617;
+  display:flex;
+  justify-content:space-between;
+  border-bottom:2px solid #1e293b;
+  font-size:14px;
+}
+canvas{background:#1e293b;border-radius:12px}
+footer{
+  width:760px;
+  background:#020617;
+  border-top:2px solid #1e293b;
+  padding:8px;
+  text-align:center;
+  font-size:12px;
+}
+.stars{color:#facc15;font-weight:bold}
+.night{filter:brightness(0.55)}
+</style>
+</head>
+<body>
+
+<div class="hud">
+  <div>🚶 اللاعب: <b>رياض</b></div>
+  <div>
+    ⭐ <span id="stars" class="stars">0</span> |
+    🔫 <span id="weapon">بدون</span> |
+    🚗 <span id="car">لا</span>
+  </div>
+</div>
+
+<canvas id="game" width="760" height="460"></canvas>
+
+<footer>
+Student Name: ALKHALIL RIYADH SALEH ALMALKI (الخليل رياض صالح المالكي) |
+Student ID: 446007251 |
+Supervised by: Mohammed Ahmed Jabali
+</footer>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const starsEl=document.getElementById("stars");
+const weaponEl=document.getElementById("weapon");
+const carEl=document.getElementById("car");
+
+let time=0; // ليل ونهار
+let stars=0;
+let weapon=false;
+let inCar=false;
+
+const player={x:360,y:220,size:16,speed:3};
+const car={x:100,y:100,size:28,speed:5};
+const bullets=[];
+const police=[];
+
+for(let i=0;i<3;i++) spawnPolice();
+
+const keys={};
+window.onkeydown=e=>{
+  keys[e.key]=true;
+  handleCheat(e.key);
+};
+window.onkeyup=e=>keys[e.key]=false;
+
+function handleCheat(key){
+  cheat+=key.toLowerCase();
+  if(cheat.includes("gun")){
+    weapon=true;
+    weaponEl.textContent="مفعل";
+    cheat="";
+  }
+  if(cheat.includes("nocops")){
+    police.length=0;
+    stars=0;
+    cheat="";
+  }
+}
+let cheat="";
+
+function spawnPolice(){
+  police.push({
+    x:Math.random()*700,
+    y:Math.random()*420,
+    size:18,
+    speed:2
+  });
+}
+
+function update(){
+  time+=0.002;
+  canvas.classList.toggle("night",Math.sin(time)<0);
+
+  let sp=inCar?car.speed:player.speed;
+  if(keys["w"]||keys["ArrowUp"]) player.y-=sp;
+  if(keys["s"]||keys["ArrowDown"]) player.y+=sp;
+  if(keys["a"]||keys["ArrowLeft"]) player.x-=sp;
+  if(keys["d"]||keys["ArrowRight"]) player.x+=sp;
+
+  player.x=Math.max(0,Math.min(760-player.size,player.x));
+  player.y=Math.max(0,Math.min(460-player.size,player.y));
+
+  if(hit(player,car) && keys["e"]){
+    inCar=!inCar;
+    carEl.textContent=inCar?"نعم":"لا";
+  }
+
+  if(inCar){
+    car.x=player.x;
+    car.y=player.y;
+  }
+
+  if(weapon && keys[" "]){
+    bullets.push({x:player.x,y:player.y});
+    stars=Math.min(5,stars+1);
+  }
+
+  bullets.forEach(b=>b.x+=6);
+
+  police.forEach(p=>{
+    if(p.x<player.x) p.x+=p.speed;
+    if(p.x>player.x) p.x-=p.speed;
+    if(p.y<player.y) p.y+=p.speed;
+    if(p.y>player.y) p.y-=p.speed;
+
+    if(hit(player,p)){
+      alert("🚓 قبضوا عليك!");
+      stars=0;
+      police.length=0;
+      spawnPolice();
+    }
+  });
+
+  starsEl.textContent=stars;
+}
+
+function drawCity(){
+  ctx.fillStyle=Math.sin(time)<0?"#020617":"#166534";
+  ctx.fillRect(0,0,760,460);
+
+  ctx.fillStyle="#374151";
+  ctx.fillRect(0,200,760,50);
+  ctx.fillRect(360,0,40,460);
+}
+
+function draw(){
+  drawCity();
+
+  ctx.fillStyle="#22c55e";
+  ctx.fillRect(player.x,player.y,player.size,player.size);
+
+  ctx.fillStyle="#f59e0b";
+  ctx.fillRect(car.x,car.y,car.size,car.size);
+
+  ctx.fillStyle="#ef4444";
+  bullets.forEach(b=>ctx.fillRect(b.x,b.y,6,2));
+
+  ctx.fillStyle="#3b82f6";
+  police.forEach(p=>ctx.fillRect(p.x,p.y,p.size,p.size));
+}
+
+function hit(a,b){
+  return a.x<b.x+b.size && a.x+a.size>b.x && a.y<b.y+b.size && a.y+a.size>b.y;
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+
+</body>
+</html>
